@@ -1,0 +1,16 @@
+ARG terraformVer="latest"
+# ARG terraformVer="0.14.7"
+
+FROM hashicorp/terraform:${terraformVer}
+
+RUN apk add --no-cache \
+        bash \
+        py-pip \
+	jq \
+ && pip install --upgrade \
+        pip \
+        awscli 
+
+# ENTRYPOINT ["/bin/bash"]
+ENTRYPOINT ["sh", "-c"]
+CMD ["terraform"]
