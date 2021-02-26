@@ -1,0 +1,110 @@
+# Azure Pipeline for Terraform
+
+trigger:
+ - none
+
+pool: Linux
+
+variables:
+  - template: azure-pipeline-terraform-env.yml
+
+steps:
+- task: EnvironmentVariables@0
+
+- task: VaultReader@1
+  displayName: 'Vault Reader'
+  inputs:
+    connectedServiceName: 'Vault AQUA'
+    data: |
+      # AWS Account
+      var => aws/eks-admin => access_key_id => AWS.ACCESS.KEY.ID
+      var => aws/eks-admin => secret_access_key => AWS.SECRET.ACCESS.KEY
+
+- task: InlineShellScript@0
+  displayName: 'Set BuildNumber and Git Version'
+  inputs:
+    script: |
+     #!/bin/bash 
+     set -e
+     gitVersion="$(git describe --abbrev=0 --tags | grep -o -E "v[[:digit:].]+")"
+     echo ${gitVersion}
+     newbuildNumber="$(build.definitionName).$(BUILD.BUILDID)-$gitVersion"
+     echo '##vso[task.setvariable variable=git.new_git_version]'$gitVersion
+     echo '##vso[build.updatebuildnumber]'$newbuildNumber
+
+- task: InlineShellScript@0
+  displayName: 'Terraform Plan for All Workspace Environments $(tf.environments)'
+  inputs:
+    script: |
+      #!/bin/bash 
+      set -e
+      for environment in $(tf.environments); do
+        case $environment in
+            dev|beta|dev-beta|qa|prod)
+                continue=true
+                ;;
+            *)
+                continue=false
+                echo "Environment is not supported: ${environment}"
+                exit 1
+                ;;
+        esac
+        if $continue; then
+            export TF_WORKSPACE=$environment
+            export TF_IN_AUTOMATION=true
+
+            docker run -t --rm \
+            -e AWS_SECRET_ACCESS_KEY=$(AWS.SECRET.ACCESS.KEY) \
+            -e AWS_ACCESS_KEY_ID=$(AWS.ACCESS.KEY.ID) \
+            -e AWS_DEFAULT_REGION=$(tf.aws.region) \
+            -e TF_WORKSPACE=$environment \
+            -e TF_IN_AUTOMATION=true \
+            -v $PWD:/terraformdir \
+            -w /terraformdir \
+            $(docker.image.tfs.aws.cli):$(docker.tfs.version) -- '\
+            terraform init -input=false' && \
+            terraform init -input=false' && \
+            docker run -t --rm \
+            -e AWS_SECRET_ACCESS_KEY=$(AWS.SECRET.ACCESS.KEY) \
+            -e AWS_ACCESS_KEY_ID=$(AWS.ACCESS.KEY.ID) \
+            -e AWS_DEFAULT_REGION=$(tf.aws.region) \
+            -e TF_WORKSPACE=$environment \
+            -e TF_IN_AUTOMATION=true \
+            -v $PWD:/terraformdir \
+            -w /terraformdir \
+            $(docker.image.tfs.aws.cli):$(docker.tfs.version) -- "\
+            terraform plan -input=false -out tf_plan-$environment \
+            -var "project_id_prefix=$(tf.project.id.prefix)" \
+            -var "app_id_prefix=$(tf.app.id.prefix)" \
+            -var "aws_region=$(tf.aws.region)" \
+            -var "project_owner=$(project.owner)"
+        fi
+      done
+
+- task: InlineShellScript@0
+  displayName: 'Set ownership for directories'
+  continueOnError: true
+  inputs:
+    script: |
+     #!/bin/bash
+     sudo chown -R build_user:build_user .terraform/ tf_plan*
+  condition: or(failed(), always())
+
+- task: InlineShellScript@0
+  displayName: 'Create Artifact from git sources - Compressed'
+  inputs:
+    script: |
+     #!/bin/bash 
+     set -e
+     tar -cJvf $(Build.ArtifactStagingDirectory)/$(Build.BuildId).tar.xz . \
+       --exclude **/.git* \
+       --exclude **/inlineScript*
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: '$(project.owner)-$(tf.app.id.prefix)-Terraform'
+    publishLocation: 'Container'
+
+- task: EnvironmentVariables@0
+  condition: or(failed(),always())

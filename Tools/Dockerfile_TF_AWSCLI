@@ -1,16 +1,85 @@
-ARG terraformVer="latest"
-# ARG terraformVer="0.14.7"
+# ARG terraformVer="latest"
+# # ARG terraformVer="0.14.7"
 
-FROM hashicorp/terraform:${terraformVer}
+# FROM hashicorp/terraform:${terraformVer}
 
-RUN apk add --no-cache \
-        bash \
-        py-pip \
-	jq \
- && pip install --upgrade \
-        pip \
-        awscli 
+# RUN apk add --no-cache \
+#         bash \
+#         py-pip \
+# 	jq \
+#  && pip install --upgrade \
+#         pip \
+#         awscli 
 
-# ENTRYPOINT ["/bin/bash"]
+# # ENTRYPOINT ["/bin/bash"]
+# ENTRYPOINT ["sh", "-c"]
+# CMD ["terraform"]
+
+ARG TF_VERSION="0.14.7"
+ARG IMAGE="hashicorp/terraform"
+# FROM hashicorp/terraform:light
+FROM $IMAGE:$TF_VERSION
+# Copy the same Version value as before FROM
+ARG TF_VERSION="0.14.7"
+ARG AWS_CLI_VERSION="2.0.30"
+ARG GLIBC_VERSION="2.30-r0"
+ARG VERSION="1.0.2"
+ARG APPLICATION_ID="terraform-aws-cli"
+ARG OWNER="DevOps"
+
+LABEL   owner=$OWNER \
+        application.id=$APPLICATION_ID \
+        version=$VERSION \
+        aws_cli_version=$AWS_CLI_VERSION \
+        tf_version=$TF_VERSION
+
+ENV LANG=C.UTF-8
+
+RUN cd ~ && \
+    apk add --no-cache --update openssl ca-certificates curl groff jq && \
+    # the following packages are required if python or pip is required
+    # apk add --no-cache --update python py-pip zip && \
+    # pip install --no-cache --upgrade pip awscli && \
+    ################
+    # To set up timezone, uncomment the following lines
+    #
+    #    apk add --no-cache tzdata && \
+    #    echo "Asia/Jerusalem" > /etc/timezone && \
+    #    ln -snf /usr/share/zoneinfo/Asia/Jerusalem /etc/localtime && \
+    ################
+    # Add glibc to alpine for AWS-CLI ver2 (otherwise use ubuntu docker image)
+    # If forked and glibc is not required, comment the lines out
+    ####################################################################################################
+    ALPINE_GLIBC_BASE_URL="https://github.com/sgerrand/alpine-pkg-glibc/releases/download" && \
+    # latest version
+    ALPINE_GLIBC_PACKAGE_VERSION=$GLIBC_VERSION && \
+    ALPINE_GLIBC_BASE_PACKAGE_FILENAME="glibc-$ALPINE_GLIBC_PACKAGE_VERSION.apk" && \
+    ALPINE_GLIBC_BIN_PACKAGE_FILENAME="glibc-bin-$ALPINE_GLIBC_PACKAGE_VERSION.apk" && \
+    ALPINE_GLIBC_I18N_PACKAGE_FILENAME="glibc-i18n-$ALPINE_GLIBC_PACKAGE_VERSION.apk" && \
+    # Download glibc packages
+    wget \
+        "$ALPINE_GLIBC_BASE_URL/$ALPINE_GLIBC_PACKAGE_VERSION/$ALPINE_GLIBC_BASE_PACKAGE_FILENAME" \
+        "$ALPINE_GLIBC_BASE_URL/$ALPINE_GLIBC_PACKAGE_VERSION/$ALPINE_GLIBC_BIN_PACKAGE_FILENAME" \
+        "$ALPINE_GLIBC_BASE_URL/$ALPINE_GLIBC_PACKAGE_VERSION/$ALPINE_GLIBC_I18N_PACKAGE_FILENAME" && \
+    # import certificate for glibc package
+    wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub && \
+    # Install the glibc packages
+    apk add --no-cache --update glibc*.apk && \
+    #     Comment to here if the glibc packages are not required
+    ####################################################################################################
+    # Download and install aws-cli & aws-iam-authenticator
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
+    unzip -o awscliv2.zip && \
+    ./aws/install && \
+    rm -rf awscliv2.zip && \
+    curl "https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/aws-iam-authenticator" -o "aws-iam-authenticator" && \
+    chmod +x ./aws-iam-authenticator && \
+    mv -f ./aws-iam-authenticator /usr/local/bin && \
+    #clean
+    apk del glibc-i18n && \
+    rm -f *.apk
+    # Uncomment if --no-cache is used
+    # rm -rf /var/cache/apk/*
+
 ENTRYPOINT ["sh", "-c"]
 CMD ["terraform"]

@@ -1,0 +1,87 @@
+tier: backend
+# Deployment Environment
+environment: {}
+  # env: dev-beta
+deployment: 
+  image:
+    replicaCount: 1
+    registry: "Registry"
+    name: "Name"
+    tag: "TAG"
+    pullPolicy: Always
+  livenessProbe:
+    failureThreshold: "3"
+    httpGet:
+      path: /
+      scheme: HTTP
+    initialDelaySeconds: "60"
+    periodSeconds: "10"
+    successThreshold: "1"
+    timeoutSeconds: "5"
+  readinessProbe:
+    failureThreshold: "3"
+    httpGet:
+      path: /
+      scheme: HTTP
+    initialDelaySeconds: "30"
+    periodSeconds: "10"
+    successThreshold: "1"
+    timeoutSeconds: "5"
+    
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+## See `kubectl explain deployment.spec.strategy` for more
+## ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy
+deploymentStrategy:
+  type: RollingUpdate
+
+service:
+  type: NodePort
+  port: 80
+  protocol: TCP
+  targetport: 80
+
+resources:
+  limits:
+    cpu: 250m
+    memory: 320Mi
+  requests:
+    cpu: 250m
+    memory: 320Mi
+
+envValues: []
+  # Not in use
+
+nodeSelector: {}
+
+ingress: {}
+  # host: [dns path]
+  # name: [ingress-name]
+  # sg: [Security Group where the ingreess is - ALB Public]
+
+tolerations: []
+
+affinity: {}
+
+hpa:
+  minReplicas: 4
+  maxReplicas: 8
+  CPUUtilizationP: 90
+  MEMUtilizationP: 90
+
+## Extra environment variables that will be pass onto deployment pods
+env: {}
+  # name:
+
+## The name of a secret in the same kubernetes namespace which contain values to be added to the environment
+## This can be useful for auth tokens, etc
+envFromSecret: ""

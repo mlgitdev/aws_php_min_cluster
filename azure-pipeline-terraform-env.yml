@@ -1,0 +1,9 @@
+variables:
+  docker.image.tfs.aws.cli: tf-aws-cli
+  docker.tfs.version: latest
+  tf.app.id.prefix: myapp
+  tf.aws.region: eu-central-1
+  tf.environments: "dev-beta qa prod"
+  tf.project.id.prefix: MPG
+  project.owner: MikePlayGround
+  helm.grafana.image.tag: 7.1.0

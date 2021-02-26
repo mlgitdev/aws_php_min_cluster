@@ -1,0 +1,19 @@
+# Project Defaults
+app_id_prefix     = "app"
+project_id_prefix = "MPG"
+project_owner     = "MikePlayGround"
+aws_region        = "eu-north-1"
+eks_version       = "1.18"
+managed_by        = "terraform"
+
+#IAM / ARNs
+iam_ec2_cluster_policy_arn                 = "arn:aws:iam::aws:policy/AmazonEC2FullAccess"
+iam_eks_cluster_policy_arn                 = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+iam_eks_service_policy_arn                 = "arn:aws:iam::aws:policy/AmazonEKSServicePolicy"
+iam_eks_workernode_policy_arn              = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+iam_eks_cni_policy_arn                     = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+iam_ec2_container_registry_read_policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+iam_eks_alb_ingress_policy_arn             = "arn:aws:iam::227735533269:policy/eks-alb-ingress-permissions"
+iam_eks_autoscaling_policy_arn             = "arn:aws:iam::227735533269:policy/EKS-Cluster-Node-AutoScaling"
+iam_role_admin_assume_arn                  = "arn:aws:iam::227735533269:role/EKS-Admin-Assume-Role"
+iam_role_user_assume_arn                   = "arn:aws:iam::227735533269:role/EKS-User-Assume-Role"

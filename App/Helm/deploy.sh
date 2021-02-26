@@ -1,0 +1,31 @@
+helm upgrade -i myapp myapp \
+    --namespace myapp \
+    --set environment=dev-beta \
+    --set env.name=DF-RP \
+    --set envValues.BUILD_VERSION=$(build.buildNumber) \
+    --set envValues.DB_HOST="$(db_host)" \
+    --set envValues.DB_PORT="$(db_port)" \
+    --set envValues.DB_USER=$(db_user) \
+    --set envValues.DB_PASSWORD=$(db_password) \
+    --set envValues.DB_NAME=$(db_name) \
+    --set envValues.HOST_HTTP_PORT=$(db_host_http_port) \
+    --set service.type=NodePort \
+    --set resources.limits.cpu=250m \
+    --set resources.requests.cpu=250m \
+    --set resources.requests.memory=384Mi \
+    --set resources.limits.memory=384Mi \
+    --set deployment.image.registry="227735533269.dkr.ecr.eu-central-1.amazonaws.com/myapp" \
+    --set deployment.image.name="latest" \
+    --set deployment.image.pullPolicy="Always" \
+    --set deployment.livenessProbe.initialDelaySeconds=60 \
+    --set deployment.livenessProbe.timeoutSeconds=5 \
+    --set deployment.readinessProbe.initialDelaySeconds=30 \
+    --set deployment.readinessProbe.timeoutSeconds=5 \
+    --set ingress.host="myapp.lekars.com" \
+    --set ingress.name="myapp-mpg" \
+    --set ingress.sg="SG-app-dev-beta-Pub-ALB" \
+    --set hpa.minReplicas=4 \
+    --set hpa.maxReplicas=6 \
+    --set hpa.CPUUtilizationP=90 \
+    --set hpa.MEMUtilizationP=90
+    --kubeconfig $(kubeconfig)
